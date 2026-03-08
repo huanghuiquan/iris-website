@@ -23,8 +23,8 @@ export function getPostBySlug(slug: string): Post | null {
 
   const fileContents = fs.readFileSync(fullPath, 'utf8');
 
-  // 提取 frontmatter
-  const frontmatterMatch = fileContents.match(/^---\n([\s\S]*?)\n---/);
+  // 提取 frontmatter（容忍前导空行）
+  const frontmatterMatch = fileContents.match(/^\s*---\n([\s\S]*?)\n---/);
   if (!frontmatterMatch) {
     return null;
   }

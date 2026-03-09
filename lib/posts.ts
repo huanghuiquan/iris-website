@@ -39,12 +39,16 @@ export function getPostBySlug(slug: string): Post | null {
     ? tagsMatch[1].split(',').map((tag) => tag.trim().replace(/["']/g, ''))
     : [];
 
+  // 提取内容部分（去掉 frontmatter）
+  const content = fileContents.replace(/^\s*---\n[\s\S]*?\n---\n?/, '');
+
   return {
     slug,
     title: titleMatch ? titleMatch[1] : '',
     date: dateMatch ? dateMatch[1] : '',
     description: descriptionMatch ? descriptionMatch[1] : '',
     tags,
+    content,
   };
 }
 

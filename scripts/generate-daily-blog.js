@@ -118,20 +118,39 @@ function createPost(content) {
   return { created: true, filepath, filename };
 }
 
-// Git 提交和推送
-function gitPush(filename) {
+// Vercel 生产环境部署
+function vercelDeploy() {
   try {
     const repoDir = path.join(__dirname, '..');
     process.chdir(repoDir);
     
-    execSync('git add content/posts/', { stdio: 'inherit' });
-    execSync(`git commit -m "添加每日总结: ${YESTERDAY_STR}"`, { stdio: 'inherit' });
-    execSync('git push', { stdio: 'inherit' });
-    console.log('✅ 已推送到仓库');
-    return true;
+    console.log('🚀 开始 Vercel 生产环境部署...');
+    const output = execSync('vercel --prod --yes', { encoding: 'utf8', stdio: 'pipe' });
+    
+    // 提取部署链接
+    const lines = output.split('\n');
+    let deployUrl = '';
+    for (const line of lines) {
+      if (line.includes('https://') && line.includes('vercel.app')) {
+        deployUrl = line.trim();
+        break;
+      }
+    }
+    
+    if (deployUrl) {
+      console.log('✅ 部署成功!');
+      console.log(`🔗 生产环境链接: ${deployUrl}`);
+      return deployUrl;
+    } else {
+      console.log('✅ 部署完成');
+      console.log(output);
+      return '部署完成';
+    }
   } catch (error) {
-    console.error('❌ Git 操作失败:', error.message);
-    return false;
+    console.error('❌ Vercel 部署失败:', error.message);
+    if (error.stdout) console.log(error.stdout);
+    if (error.stderr) console.log(error.stderr);
+    return null;
   }
 }
 
@@ -167,17 +186,29 @@ async function main() {
 }
 
 // 检查参数
-if (process.argv.includes('--push')) {
+if (process.argv.includes('--deploy')) {
   const memories = readMemoryFiles(YESTERDAY_STR);
   const extracted = extractContentFromMemory(memories);
   const content = generatePostContent(extracted);
   const result = createPost(content);
   
-  if (result.created) {
-    gitPush(result.filename);
-  } else if (fs.existsSync(path.join(POSTS_DIR, result.filename))) {
-    console.log('文章已存在，尝试推送...');
-    gitPush(result.filename);
+  if (result.created || fs.existsSync(path.join(POSTS_DIR, result.filename))) {
+    console.log('开始部署到 Vercel 生产环境...');
+    const deployUrl = vercelDeploy();
+    if (deployUrl) {
+      console.log('\n🎉 部署完成!');
+      console.log(`🔗 博客链接: ${deployUrl}`);
+    }
+  }
+} else if (process.argv.includes('--push')) {
+  // 兼容旧参数
+  const memories = readMemoryFiles(YESTERDAY_STR);
+  const extracted = extractContentFromMemory(memories);
+  const content = generatePostContent(extracted);
+  const result = createPost(content);
+  
+  if (result.created || fs.existsSync(path.join(POSTS_DIR, result.filename))) {
+    vercelDeploy();
   }
 } else {
   main();
